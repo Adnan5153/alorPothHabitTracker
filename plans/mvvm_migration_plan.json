@@ -1,0 +1,187 @@
+{
+  "title": "MVVM Migration Plan",
+  "version": "1.1.0",
+  "migration_order": [
+    "core",
+    "shared",
+    "features/auth",
+    "features/users",
+    "features/onboarding",
+    "features/splash",
+    "features/dashboard",
+    "core/widgets/glass (Glass UI library)"
+  ],
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Core scaffolding",
+      "actions": [
+        "Create core/errors/ (move error_messages.dart)",
+        "Create core/routing/ (move route.dart → app_router.dart)",
+        "Create core/di/ (provider wiring hubs)",
+        "Create core/models/ (cross-cutting value objects)",
+        "Create core/extensions/ (cross-cutting build-context, string, etc)",
+        "Create core/utils/ (helpers, formatters)",
+        "Create core/network/ (api contracts placeholder)"
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Shared layer",
+      "actions": [
+        "Create shared/widgets/ (move cross-feature widgets)",
+        "Create shared/providers/ (cross-feature providers)",
+        "Create shared/mixins/ (reusable mixins)",
+        "Create shared/helpers/ (reusable helpers)"
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Auth feature → MVVM",
+      "actions": [
+        "Rename features/auth/state/ → features/auth/presentation/viewmodels/",
+        "Extract features/auth/domain/repositories/auth_repository.dart (interface)",
+        "Extract features/auth/domain/entities/auth_user.dart",
+        "Extract features/auth/domain/usecases/sign_in_with_google.dart",
+        "Extract features/auth/domain/usecases/sign_out.dart",
+        "Extract features/auth/domain/usecases/watch_auth_state.dart",
+        "Extract features/auth/data/datasources/remote/firebase_auth_datasource.dart",
+        "Extract features/auth/data/services/google_sign_in_service.dart",
+        "Extract features/auth/data/repositories/auth_repository_impl.dart",
+        "Move features/auth/data/auth_service.dart → deprecated (replaced by datasources)"
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "Users feature → MVVM",
+      "actions": [
+        "Rename data/user_document.dart → data/models/user_dto.dart",
+        "Move data/firestore_user_repository.dart → data/repositories/user_repository_impl.dart",
+        "Extract data/datasources/remote/firestore_user_datasource.dart",
+        "Domain already clean: app_user, user_provider, user_stats, user_repository",
+        "Add domain/usecases/ensure_user_document.dart",
+        "Add domain/usecases/watch_user.dart",
+        "Add domain/usecases/update_user_stats.dart",
+        "Add presentation/viewmodels/user_viewmodel.dart"
+      ]
+    },
+    {
+      "phase": 5,
+      "name": "Onboarding feature → MVVM",
+      "actions": [
+        "Move screens/ → presentation/screens/",
+        "Move widgets/ → presentation/widgets/",
+        "Add presentation/viewmodels/onboarding_viewmodel.dart",
+        "Move auth call from LoginButton to OnboardingViewModel"
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "Splash feature → MVVM",
+      "actions": [
+        "Move screens/ → presentation/screens/",
+        "Move widgets/ → presentation/widgets/",
+        "Add presentation/viewmodels/splash_viewmodel.dart"
+      ]
+    },
+    {
+      "phase": 7,
+      "name": "Dashboard feature → MVVM",
+      "actions": [
+        "Move screens/ → presentation/screens/",
+        "Add presentation/viewmodels/dashboard_viewmodel.dart",
+        "Add domain/usecases/sign_out_and_redirect.dart"
+      ]
+    },
+    {
+      "phase": 8,
+      "name": "Cleanup",
+      "actions": [
+        "Delete bottomNavigation/cutom_bottom_navigationbar.dart (empty file, typo)",
+        "Delete deprecated files",
+        "Update main.dart to use new routes",
+        "Run flutter analyze + tests"
+      ]
+    },
+    {
+      "phase": 9,
+      "name": "Glass UI Core Widget Library",
+      "actions": [
+        "Audit design system: AppColors, AppSizes, AppRadius, AppTheme, existing widgets, BuildContext extensions.",
+        "Create lib/core/widgets/glass/glass_container/ (constants, models, extensions, widget, exports). Foundation surface with blur, gradient, tint, border, shadow, ink interaction, light/dark, responsive padding/radius, animated appearance.",
+        "Create lib/core/widgets/glass/glass_card/ built on GlassContainer. Slots: title, subtitle, leading, trailing, body, footer. Optional tap, hover, selected, disabled states.",
+        "Create lib/core/widgets/glass/glass_summary_card/ built on GlassContainer. Animated value, label, subtitle, icon badge, progress, status badge, trend indicator, chart slot.",
+        "Create lib/core/widgets/glass/glass_primary_button/ — premium CTA: filled glass, loading, disabled, leading/trailing icons, gradient, animated press, ripple, adaptive sizing, full-width and compact.",
+        "Create lib/core/widgets/glass/glass_dropdown_container/ — reusable blur popup: scrollable, animated, adaptive height, custom items, selection, empty, loading.",
+        "Create lib/core/widgets/glass/glass_dropdown_button/ — searchable, validated selector: leading/trailing icons, hint, loading/error/disabled, animated open/close.",
+        "Create lib/core/widgets/glass/preview_page.dart + GlassPreviewRegistrar. Register every widget in the Widget Builder catalog. Expose /glass-preview route.",
+        "Create lib/core/widgets/glass/exports.dart barrel re-export.",
+        "Update plans/mvvm_architecture.json with the Glass UI library section (folder responsibilities, dependency flow, widget builder integration).",
+        "Update plans/mvvm_migration_plan.json with phase 9 and the future migration milestones for replacing standard Material surfaces with glass widgets where appropriate."
+      ],
+      "future_milestones": [
+        "Phase 10: Replace existing PrimaryButton/SecondaryButton call sites with GlassPrimaryButton on dashboard, onboarding and any premium CTA surfaces.",
+        "Phase 11: Replace bare Material Cards inside feature screens with GlassCard.",
+        "Phase 12: Convert remaining dropdown / popup menus (app bar menus, filter pickers) to GlassDropdownButton + GlassDropdownContainer.",
+        "Phase 13: Wrap dashboard summary widgets with GlassSummaryCard.",
+        "Phase 14: Add additional glass widgets (GlassChip, GlassDialog, GlassTextField, GlassAppBar) following the same folder contract."
+      ]
+    },
+    {
+      "phase": 10,
+      "name": "CustomScaffold global screen surface",
+      "actions": [
+        "Create lib/core/widgets/scaffold/custom_scaffold/ with public CustomScaffold plus the Background, Body, SafeArea, Overlay, Loading, Constants and Exports submodules.",
+        "CustomScaffold wraps Material Scaffold (so SnackBars / dialogs / focus traversal keep working) and composes background → body → overlay → loading via a Stack.",
+        "Body slot owns SafeArea, padding (custom or responsive via ButtonResponsiveSize), optional SingleChildScrollView with ClampingScrollPhysics, optional fadeUpEntrance via AppAnimateExtensions.",
+        "Background paints a solid theme colour plus an optional gradient and optional blurred image. Never wraps content in LiquidGlassEffect — that is a separate surface concern.",
+        "Overlay is a Positioned.fill slot used to host chrome (e.g. modals, banners, loading). Loading flag paints a hairline-glass disc with a themed spinner inside the overlay stack.",
+        "All tokens read from LiquidTheme, AppSizes, AppAnims, AppRadius, ButtonResponsiveSize and the scaffold's own constants file. Nothing hardcoded.",
+        "Replace direct Scaffold usage in features/splash, features/onboarding, features/dashboard with CustomScaffold. Splash moves its gradient into the background slot; onboarding uses scrollable:true so the LayoutBuilder + IntrinsicHeight dance can be removed; home dashboard passes appBar + padding.",
+        "Delete the empty placeholder lib/core/widgets/scaffold/custom_scaffold.dart now that the real files live one level deeper.",
+        "Update plans/mvvm_architecture.json with the customScaffold module description, dependency flow, and consumption pattern.",
+        "Run flutter analyze — no new issues."
+      ],
+      "future_milestones": [
+        "Phase 11: Migrate every remaining feature screen to CustomScaffold (auth, settings, profile, photo gallery).",
+        "Phase 12: Add overlay-based promo / announcement chrome across the app using the overlay slot.",
+        "Phase 13: Add a CustomScaffoldDark helper that pins a dark surface for splash / branded screens via forceDarkBackground.",
+        "Phase 14: Add a Hero-aware variant for screens that animate between routes with custom transitions."
+      ]
+    },
+    {
+      "phase": 11,
+      "name": "LiquidScaffold adoption — theme-first global layout engine",
+      "actions": [
+        "Delete lib/core/widgets/scaffold/custom_scaffold/ folder and the empty placeholder lib/core/widgets/scaffold/custom_scaffold.dart.",
+        "Create lib/core/widgets/scaffold/liquid_scaffold_theme/ — ThemeExtension (LiquidScaffoldThemeData: padding, ambient tokens, loading chrome tokens, overlay scrim opacity, image blur sigma) + InheritedWidget (LiquidScaffoldTheme) + barrel. Static light/dark instances.",
+        "Create lib/core/widgets/scaffold/liquid_scaffold_extensions/ — BuildContext extension (LiquidScaffoldContextX) exposing context.liquidScaffoldTheme and context.hasLiquidScaffoldTheme.",
+        "Create lib/core/widgets/scaffold/liquid_background/ — AmbientBackgroundStyle value object, LiquidLightBlobsPainter (CustomPainter), LiquidBackground widget with internal SingleTickerProviderStateMixin AnimationController that drives slow blob drift (default 18s, reverse: true).",
+        "Create lib/core/widgets/scaffold/liquid_safe_area/ — LiquidSafeArea wrapper around SafeArea with per-edge flags + transparent color default.",
+        "Create lib/core/widgets/scaffold/liquid_body/ — LiquidBody composer (SafeArea → padding → scroll → entrance) + LiquidBodyDefaults constants.",
+        "Create lib/core/widgets/scaffold/liquid_overlay/ — LiquidOverlay (Positioned.fill with optional scrim), LiquidLoading (centred hairline-glass disc spinner), LiquidOverlayDefaults.",
+        "Create lib/core/widgets/scaffold/liquid_scaffold/ — LiquidScaffold host widget (title/subtitle AppBar shortcut, errorState/emptyState priority, Material chrome passthroughs, ambient bootstrap) + LiquidScaffoldDefaults + barrel re-exporting every sibling module.",
+        "Migrate features/splash/presentation/screens/splash_screen.dart — replace CustomScaffold with LiquidScaffold (gradient, padding, body).",
+        "Migrate features/onboarding/presentation/screens/onboarding_screen.dart — replace CustomScaffold with LiquidScaffold (padding: EdgeInsets.zero, body keeps its existing LayoutBuilder + IntrinsicHeight wrapper for Spacer semantics).",
+        "Migrate features/dashboard/presentation/screens/home_dashboard_screen.dart — replace CustomScaffold with LiquidScaffold (appBar, padding, body).",
+        "Update plans/mvvm_architecture.json — replace the custom_scaffold section with a comprehensive liquid_scaffold section documenting every module, folder structure, dependency flow, consumption pattern and strict rules (no raw Scaffold, no business logic).",
+        "Update plans/mvvm_migration_plan.json — append phase 11 with the actions above.",
+        "Run flutter analyze — zero new issues. All 34 pre-existing withOpacity deprecations in liquid_glass_effect.dart remain unchanged."
+      ],
+      "future_milestones": [
+        "Phase 12: Migrate auth, settings, profile, photo gallery and every future screen to LiquidScaffold.",
+        "Phase 13: Add liquid_app_bar / liquid_bottom_bar / liquid_navigation folders with first-class glass wrappers around Material AppBar / BottomNavigationBar / NavigationRail / Drawer.",
+        "Phase 14: Wire ambient background as a global opt-in via main.dart (e.g. LiquidScaffoldTheme defaults to ambient.enabled = true with a brand-specific tint).",
+        "Phase 15: Add skeleton loaders, hero-aware LiquidScaffold variant, and liquid_scaffold_test helpers."
+      ]
+    }
+  ],
+  "rationale": {
+    "feature_first": "Each feature is the smallest releasable unit. Cross-feature concerns are pushed into core/ and shared/.",
+    "use_case_layer": "Business operations are first-class. ViewModels stay thin and depend on UseCases, not Repositories.",
+    "data_source_split": "Remote and Local datasources are strictly separate. Repositories orchestrate them. DTOs are confined to data/models/.",
+    "riverpod": "Single state-management library. No setState for business logic. Providers live next to the layer they expose.",
+    "no_widget_domain_reach": "Widgets only depend on presentation/viewmodels/. They never reach into Firebase or Firestore.",
+    "glass_ui_library": "A premium, reusable design-system layer that future features can compose against without re-implementing glass surfaces. Independent of business logic, presentation-only, fully responsive, light/dark adaptive, and built on top of the project's existing design tokens."
+  }
+}

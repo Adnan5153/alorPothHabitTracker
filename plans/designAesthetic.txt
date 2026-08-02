@@ -1,0 +1,381 @@
+================================================================================
+ALOR POTH — LIQUID GLASS DESIGN AESTHETIC
+================================================================================
+
+This document is the canonical design language for every surface in the
+Alor Poth application. Every widget — buttons, cards, dropdowns, chips,
+app bar elements, dialogs, list rows, summary tiles, navigation chrome —
+MUST conform to the principles, tokens, and rules below. When a new
+component is built, treat this file as the source of truth. If a
+component needs to deviate, document the deviation in code AND update
+this file.
+
+The reference implementation for this aesthetic is the Login Button in
+lib/features/onboarding/presentation/widgets/login_button.dart.
+Whenever this document is ambiguous, mirror that file's structure.
+
+--------------------------------------------------------------------------------
+1. NORTH STAR
+--------------------------------------------------------------------------------
+
+The Alor Poth aesthetic is "polished optical glass." Every surface should
+look like a tangible, premium glass object that has been carved, polished,
+and placed carefully above the page — not like a Material widget with a
+blur. The user should perceive depth, refraction, weight, and light.
+
+Hard "no" list:
+- NO frosted-acrylic / generic glassmorphism.
+- NO imitation of Material Design surfaces.
+- NO thick borders, NO heavy Material shadows, NO saturated gradients.
+- NO pure white cards on pure white backgrounds.
+- NO sharp 90-degree corners on any interactive or container surface.
+- NO bouncy, elastic, or exaggerated motion.
+
+--------------------------------------------------------------------------------
+2. TOKEN SOURCE OF TRUTH
+--------------------------------------------------------------------------------
+
+Every value — colour, blur, opacity, radius, padding, motion — comes
+from an existing token. Hardcoding in feature code is forbidden.
+
+  Colours         : LiquidTheme.*  (theme/liquid_theme.dart)
+  Button palette  : ButtonPalette.*  via liquidTheme.toButtonPalette(scheme)
+  Motion          : LiquidMotion.*  (transitions/liquid_transition.dart)
+  Button sizing   : AppButtonSizes.*, ButtonMetrics.of(...), ButtonResponsiveSize
+  Entrance anim   : AppAnims.*, AppAnimateExtensions.* (animations/app_animations.dart)
+  Brand colours   : AppColors.*  (constants/app_colors.dart)
+  Sizes           : AppSizes.*, AppRadius.*  (constants/...)
+
+If a token does not exist yet, ADD IT to the appropriate file rather than
+hardcoding. Never duplicate a magic number at a call site.
+
+--------------------------------------------------------------------------------
+3. GLASS CHARACTER
+--------------------------------------------------------------------------------
+
+3.1 Transparency
+- Every glass surface is SEMI-TRANSPARENT. The page background MUST remain
+  visible through it.
+- Centre of the surface is BRIGHTER than the edges (denser outer ring).
+  This is achieved by LiquidGlassEffect's internal radial gradient stack
+  — do not override it with a flat fill.
+- Density is controlled by surfaceOpacity. Trust the theme defaults
+  (dark ~0.10, light ~0.55). Never set surfaceOpacity below 0.05
+  (the surface disappears) or above 0.85 (it becomes flat plastic).
+
+3.2 Blur
+- Backgrounds MUST distort through the surface — never use solid fills
+  where the page should bleed through.
+- Blur is HIGH-QUALITY, SUBTLE. Default values come from the theme
+  (LiquidTheme.blurStrength, dark ~22, light ~14). Do not exceed 60.
+- The blur should feel like looking through curved glass, not through
+  frosted privacy film.
+
+3.3 Refraction
+- Edges distort the background slightly. Implemented via the linear
+  gradient stack inside LiquidGlassEffect (top/bottom and left/right
+  edge highlights). Do not flatten this stack.
+- Subtle internal refraction is created by the secondary shine gradient
+  and the noise overlay. Never disable these layers manually.
+
+--------------------------------------------------------------------------------
+4. SURFACE DETAILS
+--------------------------------------------------------------------------------
+
+4.1 Outer border
+- ALWAYS a very thin bright border. borderWidth = 0.6.
+- Border colour is WHITE at low alpha — 0.30 in dark mode, 0.45 in
+  light mode. Disabled state: 0.18 alpha.
+- Border is a continuous outline; never dashed, never segmented.
+- Soft shimmer: implemented through the radial+linear gradient stack
+  inside LiquidGlassEffect.
+
+4.2 Inner glow
+- A soft inner glow appears as if light is trapped inside the glass.
+- This is achieved by LiquidGlassEffect's internal radial gradient and
+  the inner hairline border layer. Do not disable these.
+- The glow MUST remain subtle; it should never overpower text readability.
+
+4.3 Specular highlights
+- Bright highlights run along the upper edge of every glass surface.
+- Highlights are ELONGATED, not dots. They are simulated by the
+  top-to-bottom linear gradient (stops at 0.03 / 0.97).
+- During interaction, highlights MAY animate — but the animation must
+  be calm and at the surface's existing motion duration, not a custom
+  custom tween.
+
+4.4 Shadows
+- NO Material elevation shadows. No dark heavy drop shadows.
+- Each floating glass surface has TWO shadows when not disabled:
+    BoxShadow(color: black @ 0.18, blurRadius: 28, offset: Offset(0, 12))
+    BoxShadow(color: black @ 0.10, blurRadius:  6, offset: Offset(0,  2))
+  The first is the diffuse outer shadow; the second is the tight
+  contact shadow. Both together create the "suspended above the page"
+  illusion.
+- Disabled state: shadows = null. The surface recedes into the page.
+
+--------------------------------------------------------------------------------
+5. SHAPE
+--------------------------------------------------------------------------------
+
+- All interactive and container surfaces use LARGE, CONTINUOUS corner
+  radius. The default is LiquidTheme.borderRadius (~20) or a larger
+  value (capsule uses 96).
+- Pill / capsule shapes: borderRadius = 96.0, fully continuous.
+- Card / container shapes: LiquidTheme.borderRadius (~20).
+- Small chips / icons: 12 to 16.
+- NEVER use sharp corners. Even square content (icons inside badges)
+  should sit on a rounded substrate.
+- All corners are anti-aliased (LiquidGlassEffect wraps content in
+  ClipRRect; do not bypass this).
+
+--------------------------------------------------------------------------------
+6. COLOUR PALETTE
+--------------------------------------------------------------------------------
+
+- Surfaces are NEVER hardcoded to a single colour. They derive from
+  LiquidTheme.surfaceTint, LiquidTheme.borderColor, and the active
+  ColorScheme.
+- The brand accent (AppColors.accent = 0xFFF59E0B amber) appears ONLY
+  as:
+    - a hairline tint on the active state of certain surfaces,
+    - a subtle glow on the active state,
+    - or a small brand element (e.g. Google mark, brand chip).
+  The accent must NEVER be the fill of a glass surface — that creates
+  the "solid orange" effect that breaks the glass illusion.
+- Foreground (text/icon) on a glass surface is taken from
+  ButtonPalette.onAccent (which reads ColorScheme.onPrimary). Do not
+  branch on brightness manually — the palette already adapts.
+- Disabled foreground is palette.disabled (ColorScheme.onSurface @ 0.38).
+  Disabled surface tint is palette.disabledSurface (onSurface @ 0.10).
+
+--------------------------------------------------------------------------------
+7. CONTENT
+--------------------------------------------------------------------------------
+
+7.1 Icons
+- Icon size follows AppButtonSizes.iconSmall / iconMedium / iconLarge
+  based on the button / component's ButtonSize.
+- Icons inside buttons: gap to text = AppButtonSizes.iconLabelGap (8).
+- Icons that represent brands (Google, Apple, social) are rendered from
+  SVG assets in assets/images/ or assets/icons/. Never as coloured
+  Unicode glyphs on a coloured circle (that looked like a placeholder).
+- Icon strokes are CRISP; never rasterise icons.
+
+7.2 Text
+- Always centred vertically within its glass surface.
+- Always uses LiquidThemes.of(context).textStyle.copyWith(...) — never
+  a raw TextStyle with hardcoded font family / colour.
+- fontSize, fontWeight, letterSpacing come from AppButtonSizes or from
+  the component's design tokens.
+- Medium weight (FontWeight.w600) is the default for interactive
+  surfaces. Use FontWeight.w500 for descriptive text.
+- Letter-spacing 0.2 on button labels for premium feel.
+
+7.3 Loading state
+- Replace the label with a centred CircularProgressIndicator.
+- strokeWidth = AppButtonSizes.loadingStroke (2.4), size = loadingSize (20).
+- valueColor = AlwaysStoppedAnimation<Color>(foreground) so the spinner
+  inherits the theme-aware foreground colour.
+- The GLASS SHELL stays visible during loading — do not dim, hide, or
+  replace the surface itself.
+
+7.4 Disabled state
+- surfaceOpacity 0.18, reflectionIntensity 0.18, boxShadow = null.
+- Foreground = palette.disabled.
+- The surface remains ELEGANT — never muddy or greyed out.
+
+--------------------------------------------------------------------------------
+8. INTERACTION
+--------------------------------------------------------------------------------
+
+8.1 Press
+- Scale 0.985, fade false. Duration LiquidMotion.press (180ms), curve
+  LiquidMotion.pressCurve (easeInOut).
+- Implemented via LiquidPressController → LiquidTransition.
+- During press: glass appears slightly denser, highlights are subdued.
+- No ripple. No haptic. No Material InkWell.
+
+8.2 Hover / focus
+- Mouse cursor: SystemMouseCursors.click on enabled, basic on disabled.
+- Hover / focus subtly increases the highlight intensity (handled by
+  LiquidPressController's shared state).
+
+8.3 Re-tap protection
+- During loading, onPressed is null, IgnorePointer ignores taps,
+  LiquidPressController is disabled. The surface cannot fire the
+  callback twice.
+
+8.4 Touch target
+- Min 48dp (AppButtonSizes.minTouchTarget) on every interactive surface.
+- Pad the visible content with AppButtonSizes.padH horizontally and
+  metrics.verticalPadding vertically.
+
+--------------------------------------------------------------------------------
+9. MOTION
+--------------------------------------------------------------------------------
+
+- All entrance animations use flutter_animate via AppAnimateExtensions.
+- Page-level content: fadeUpEntrance (fadeIn + moveY 16→0) with the
+  staggered delay supplied by AppAnims.standard + AppAnims.standard etc.
+- Hero elements: scaleFadeEntrance (fadeIn + scale 0.92→1).
+- Chrome (app bars, dividers): fadeIn (pure).
+- Surface transitions (label ↔ spinner): AnimatedSwitcher with
+  LiquidMotion.micro (120ms). Keys: '*-label' and '*-loading'.
+- Press feedback: LiquidMotion.press (180ms).
+- NO bounce. NO elastic. NO overshoot. NO spring.
+- All animations are calm and premium — they should feel inevitable,
+  not decorative.
+
+--------------------------------------------------------------------------------
+10. RESPONSIVENESS
+--------------------------------------------------------------------------------
+
+- Every interactive surface adapts to phones, tablets, desktop, and
+  Flutter Web.
+- Use ButtonResponsiveSize.forContext(context) for ButtonSize upgrades
+  on wider screens (≥600dp → medium, ≥1024dp → large).
+- Padding scales with the chosen ButtonSize (padVSmall / padVMedium /
+  padVLarge).
+- Buttons may be either intrinsic-width (hugs content) or
+  full-width (isExpanded: true) — match the call site's intent. Never
+  force one without the call site agreeing.
+- Avoid fixed pixel dimensions in feature code. Read everything from
+  tokens.
+
+--------------------------------------------------------------------------------
+11. PERFORMANCE
+--------------------------------------------------------------------------------
+
+- One LiquidGlassEffect per visible state. Do not nest glass surfaces.
+- Reuse LiquidSurface / LiquidTapSurface when the surface is shared
+  across multiple widgets (e.g. AppBar buttons).
+- LiquidGlassEffect already wraps content in BackdropFilter — do not
+  add another BackdropFilter above it.
+- Hover/focus state changes must NOT cause a full subtree rebuild.
+  LiquidPressController already scopes its rebuilds.
+- Target 60 FPS on mid-range Android. If profiling later reveals the
+  login button is hot, the candidates are: removing the entrance
+  animation, dropping the spinner, or memoising the gradient stack.
+
+--------------------------------------------------------------------------------
+12. THEME INTEGRATION
+--------------------------------------------------------------------------------
+
+- The Material side (lib/core/theme/app_theme.dart) and the Liquid Glass
+  side (lib/core/liquidGlass/theme/liquid_theme.dart) MUST complement
+  each other. AppTheme exposes light / dark ThemeData bundles AND
+  matching LiquidTheme bundles (AppTheme.lightLiquidTheme,
+  AppTheme.darkLiquidTheme, AppTheme.liquidThemeFor(brightness)).
+- main.dart wraps MaterialApp.router in a LiquidThemeProvider so
+  LiquidThemes.of(context) always returns a bundle derived from the
+  active Material theme.
+- LiquidThemes.isDark(context) is read only when a token truly needs to
+  branch on brightness (e.g. the hairline alpha in the login button).
+  Every other value flows through palette.* / liquidTheme.*.
+- Light mode + dark mode both honour this aesthetic — surfaces look
+  the same shape and motion in both, only the tint and hairline alpha
+  differ.
+
+--------------------------------------------------------------------------------
+13. COMPONENT CHECKLIST
+--------------------------------------------------------------------------------
+
+When building any new surface — whether it's a button, card, dropdown,
+chip, dialog, list row, summary tile, app bar element, or any other
+interactive or container widget — confirm:
+
+[ ] Surface tint comes from LiquidTheme, not hardcoded.
+[ ] Border is white @ 0.30 dark / 0.45 light, borderWidth 0.6.
+[ ] Outer shadow pair is present when not disabled; null when disabled.
+[ ] Inner content padding comes from AppButtonSizes / ButtonMetrics.
+[ ] Min touch target is AppButtonSizes.minTouchTarget (48dp).
+[ ] Press feedback uses LiquidPressController + LiquidTransition
+    (scale 0.985, fade false, LiquidMotion.press).
+[ ] Foreground is palette.onAccent or palette.disabled — never
+    hardcoded white / slate.
+[ ] Disabled state: surfaceOpacity 0.18, reflectionIntensity 0.18,
+    boxShadow null, foreground palette.disabled.
+[ ] Loading: glass stays; label ↔ spinner swap via AnimatedSwitcher
+    with LiquidMotion.micro and preserved ValueKeys.
+[ ] Entrance animation (if any) is via AppAnimateExtensions at the
+    call site, NOT chained inside the surface.
+[ ] No ripple. No Material elevation. No bounce.
+[ ] flutter analyze passes. The widget reads only from tokens.
+
+If any item on this checklist is missing, the component does not yet
+match the Alor Poth Liquid Glass aesthetic. Iterate until it does.
+
+--------------------------------------------------------------------------------
+14. FILE MAP
+--------------------------------------------------------------------------------
+
+Reference files for the design system:
+
+  lib/core/liquidGlass/theme/liquid_theme.dart
+      LiquidTheme, LiquidThemes, ButtonPalette, LiquidThemeProvider,
+      factories forBrightness(Brightness) and fromThemeData(ThemeData).
+
+  lib/core/liquidGlass/effects/liquid_glass_effect.dart
+      LiquidGlassEffect — the canonical glass surface. Wraps the
+      liquid_glass_ui package's LiquidGlassContainer with the project's
+      gradient stack, border, shadow, and tint.
+
+  lib/core/liquidGlass/surfaces/liquid_surface.dart
+      LiquidSurface — minimal frosted-glass surface using the package.
+      LiquidTapSurface — adds Material+InkWell ripple for app-bar chrome.
+
+  lib/core/liquidGlass/transitions/liquid_transition.dart
+      LiquidMotion, LiquidTransition, LiquidPressController.
+
+  lib/core/widgets/button/
+      primary_button.dart, secondary_button.dart — the two reusable
+      button shapes. New button variants should derive from these.
+      button_content.dart, button_sizes.dart, button_extensions.dart,
+      button_preview_page.dart — token + content helpers.
+
+  lib/core/widgets/glass/
+      glass_card, glass_container, glass_dropdown_button,
+      glass_dropdown_container, glass_summary_card — the higher-level
+      surfaces that compose LiquidGlassEffect with motion.
+
+  lib/features/onboarding/presentation/widgets/login_button.dart
+      Reference implementation of this aesthetic. Mirror its structure.
+
+  lib/core/theme/app_theme.dart
+      Material ThemeData bundles + matching LiquidTheme accessors.
+      lightLiquidTheme / darkLiquidTheme / liquidThemeFor(Brightness).
+
+  lib/main.dart
+      Wraps MaterialApp.router in LiquidThemeProvider so Liquid Glass
+      surfaces always see a bundle derived from the active Material theme.
+
+  lib/core/animations/app_animations.dart
+      AppAnims tokens + AppAnimateExtensions (fadeUpEntrance,
+      scaleFadeEntrance, fadeIn) for entrance choreography.
+
+  lib/core/constants/
+      app_colors.dart, app_sizes.dart, app_strings.dart, app_routes.dart,
+      app_radius.dart — brand palette, dimensions, copy, routes, radii.
+
+  assets/images/
+      Brand mark assets (e.g. google_g_logo.svg). All brand icons should
+      live here as SVG / PNG and render through flutter_svg / Image.asset.
+
+--------------------------------------------------------------------------------
+15. CHANGE PROTOCOL
+--------------------------------------------------------------------------------
+
+When this aesthetic evolves:
+1. Update this file FIRST.
+2. Update the canonical reference (login_button.dart) if a token changes.
+3. Update the LiquidTheme / LiquidGlassEffect defaults if the change
+   applies to every surface.
+4. Update all consumers in the same PR so the look stays uniform.
+
+This file is the contract. The codebase is the implementation. Keep
+them in sync.
+
+================================================================================
+END OF DOCUMENT
+================================================================================

@@ -1,0 +1,205 @@
+{
+  "title": "MVVM Architecture",
+  "version": "1.1.0",
+  "layers": {
+    "core": {
+      "purpose": "Cross-cutting infrastructure with no business logic.",
+      "modules": {
+        "constants": "Stable numeric/string/route identifiers (AppColors, AppSizes, AppRadius, AppStrings, AppRoutes).",
+        "theme": "Material 3 light/dark theme and shared text styles.",
+        "errors": "Exception → user-friendly message translation (ErrorMessages).",
+        "animations": "flutter_animate wrappers and named durations (AppAnims).",
+        "routing": "GoRouter configuration and auth-aware redirects (app_router.dart).",
+        "di": "Riverpod provider wiring hubs (firebase_providers, router_providers).",
+        "models": "Generic value objects used by multiple features (Result, AsyncValue helpers).",
+        "extensions": "BuildContext, String, and num helpers.",
+        "network": "Placeholder for future REST clients; not used today.",
+        "utils": "Date/time formatters, string helpers.",
+        "widgets": {
+          "appbar": "CustomAppBar / CustomSliverAppBar reusable surface.",
+          "button": "PrimaryButton / SecondaryButton reusable surfaces.",
+          "glass": "Glass UI Core Widget Library — premium glass-morphism surface used across the application. See glass section below.",
+          "scaffold": "LiquidScaffold — global screen surface used by every feature. See liquidScaffold section below."
+        }
+      },
+      "glass_ui_library": {
+        "purpose": "Production-ready, reusable glass component library that becomes the visual foundation of the application.",
+        "base_folder": "lib/core/widgets/glass/",
+        "design_principles": [
+          "Strict separation between foundation and feature widgets.",
+          "Every widget folder is self-contained with its own constants, models (when needed), extensions (when needed) and barrel exports.",
+          "No hardcoded colors, typography, spacing, radius or animation durations — every value flows from the project's design system (AppColors, AppSizes, AppRadius, AppTheme).",
+          "Responsive sizing auto-bumps tiers on tablet/desktop using BuildContext.media queries.",
+          "Light and dark themes supported automatically via the active ColorScheme.",
+          "Performance: const constructors, no per-frame BackdropFilter on hidden surfaces, shallow widget trees, single overlay per dropdown.",
+          "Animations: flutter_animate entrance effects + targeted AnimationController for stateful feedback. No bouncy or flashy transitions.",
+          "Strictly presentation-only: no business logic, no provider injection beyond local UI state, no Firebase, no Firestore.",
+          "Composable: every widget accepts child + styling overrides, has sensible defaults, and never assumes the surrounding design."
+        ],
+        "widgets": {
+          "GlassContainer": "Foundation surface. Owns blur, gradient, tint, border, shadow, rounded clipping, animated appearance, ink interaction, light/dark adaptive styling. Used by every other glass widget.",
+          "GlassCard": "Reusable content card with title/subtitle/leading/trailing/body/footer slots, optional tap, hover lift, selected and disabled states. Built on GlassContainer.",
+          "GlassSummaryCard": "Dashboard analytics surface with large animated value, label, subtitle, icon badge, progress, status badge, trend indicator and optional chart slot. Built on GlassContainer.",
+          "GlassPrimaryButton": "Premium call-to-action button with filled-glass style, loading, disabled, leading/trailing icons, gradient, animated press feedback, ripple, adaptive sizing, full-width and compact modes.",
+          "GlassDropdownContainer": "Reusable blur popup surface used by every dropdown. Scrollable, animated, adaptive height, custom item widgets, selection support, empty and loading states.",
+          "GlassDropdownButton": "Searchable, validated dropdown selector with leading/trailing icons, hint, loading/error/disabled states, animated open/close and a custom overlay popup."
+        },
+        "folder_structure": {
+          "lib/core/widgets/glass/glass_container/": ["constants.dart", "models.dart", "extensions.dart", "widget.dart", "exports.dart"],
+          "lib/core/widgets/glass/glass_card/": ["constants.dart", "models.dart", "widget.dart", "exports.dart"],
+          "lib/core/widgets/glass/glass_summary_card/": ["constants.dart", "models.dart", "widget.dart", "exports.dart"],
+          "lib/core/widgets/glass/glass_primary_button/": ["constants.dart", "models.dart", "widget.dart", "exports.dart"],
+          "lib/core/widgets/glass/glass_dropdown_container/": ["constants.dart", "widget.dart", "exports.dart"],
+          "lib/core/widgets/glass/glass_dropdown_button/": ["constants.dart", "models.dart", "widget.dart", "exports.dart"],
+          "lib/core/widgets/glass/preview_page.dart": "Widget Builder preview surface.",
+          "lib/core/widgets/glass/exports.dart": "Top-level barrel re-exporting every widget for single-import access."
+        },
+        "dependency_flow": [
+          "presentation/* (features) → core/widgets/glass (only this layer)",
+          "core/widgets/glass/* → core/widgets/glass/glass_container (foundation)",
+          "core/widgets/glass/* → core/constants, core/theme, core/extensions",
+          "core/widgets/glass widgets never depend on features/, data/, or domain/"
+        ],
+        "widget_builder_integration": "Every glass widget is registered in GlassPreviewRegistrar (lib/core/widgets/glass/preview_page.dart). The GlassPreviewPage is exposed as the route '/glass-preview' for design review and is intended to be linked from the Widget Builder catalog."
+      },
+      "liquid_scaffold": {
+        "purpose": "Global screen surface and the foundational layout engine of every feature screen. Wraps a Material Scaffold (preserving SnackBars / dialogs / focus traversal), layers background → body → overlay → loading via a Stack, and exposes title / subtitle / errorState / emptyState / drawer / ambient-background shortcuts so a new screen is one widget away from the full Alor Poth Liquid Glass aesthetic.",
+        "base_folder": "lib/core/widgets/scaffold/",
+        "design_principles": [
+          "Screens never instantiate Material Scaffold directly; they consume LiquidScaffold so background, padding, SafeArea, scroll, entrance, overlay, loading, ambient lighting, theming, error / empty state and Material chrome live in one place.",
+          "Two glass-depth slots: background (painted first, below body) and overlay (painted last, above body). They never wrap the body itself — the body is the page content.",
+          "Tokens only: every colour, blur, opacity, radius, padding, motion, ambient animation duration, loading disc size, overlay scrim alpha and image-blur sigma is read from LiquidTheme, LiquidScaffoldThemeData, AppSizes, AppAnims, AppButtonSizes or the scaffold's own constants file.",
+          "Theme-first: LiquidScaffoldTheme extends ThemeExtension so scaffold-level tokens theme with the rest of the app. LiquidScaffold mounts a default instance automatically when none is present, so a screen works standalone but is themed consistently when wrapped.",
+          "Ambient background: opt-in via AmbientBackgroundStyle (enabled:false by default). When enabled, LiquidBackground paints 2–3 soft blurred light blobs and drives them with a slow internal AnimationController wrapped in a RepaintBoundary.",
+          "Body composition: LiquidBody owns SafeArea → padding (explicit or responsive via LiquidScaffoldResponsivePadding) → optional SingleChildScrollView with ClampingScrollPhysics → optional fadeUpEntrance.",
+          "Loading chrome: LiquidLoading — hairline-glass disc with a themed spinner; uses the same LiquidGlassEffect + ButtonPalette tokens as the button family.",
+          "Title shortcut: when appBar is null and title is non-null, LiquidScaffold auto-builds a CustomAppBar with AppBarVariant.defaultBar. errorState / emptyState win over body when supplied.",
+          "Strict rules: no business logic, no Firebase, no Firestore. No raw Scaffold in feature code. No hardcoded colour, blur, radius, padding or duration anywhere inside the scaffold module."
+        ],
+        "modules": {
+          "LiquidScaffold": "Public host widget. Wraps Material Scaffold with a Stack of background → body → overlay → loading. Resolves appBar (auto-builds from title when null) and body (errorState / emptyState priority over body). Bootstraps LiquidScaffoldTheme when none is present.",
+          "LiquidScaffoldConstants": "Const-friendly defaults for the LiquidScaffold constructor (booleans, BoxFit, AmbientBackgroundStyle default).",
+          "LiquidScaffoldThemeData": "ThemeExtension that owns every scaffold-level token: padding, responsive padding tiers, ambient blob count / blur / radius / opacity / animation duration, loading disc size / spinner stroke / spinner diameter, overlay scrim opacity, image blur sigma. Static `light` and `dark` instances.",
+          "LiquidScaffoldTheme": "InheritedWidget exposing LiquidScaffoldThemeData down the tree. Static of(context) / maybeOf(context) accessors.",
+          "LiquidScaffoldContextX": "BuildContext extension providing `context.liquidScaffoldTheme` and `context.hasLiquidScaffoldTheme` so consumers never touch the InheritedWidget directly.",
+          "LiquidBackground": "Self-contained background layer. Solid theme base + optional gradient + optional blurred image + optional ambient blobs. Owns the AnimationController for ambient lighting. When `background` is supplied, replaces every other layer.",
+          "AmbientBackgroundStyle": "Immutable configuration object. enabled / tint / blobCount / maxBlurSigma / maxRadiusFraction / opacityMin / opacityMax / duration.",
+          "LiquidLightBlobsPainter": "CustomPainter that renders List<LiquidBlobSpec> as soft radial-gradient circles. shouldRepaint compares every blob's spec.",
+          "LiquidBlobSpec": "Immutable per-blob spec: center, radius, opacity. == + hashCode by all three fields.",
+          "LiquidSafeArea": "Edge-aware SafeArea with `color: Color?` defaulting to Colors.transparent so the scaffold never paints an opaque Material slab over LiquidBackground.",
+          "LiquidBody": "Body composer. LiquidSafeArea → Padding (explicit / responsive / default) → SingleChildScrollView (optional, ClampingScrollPhysics) → fadeUpEntrance (optional).",
+          "LiquidBodyConstants": "Default body padding (mirrors AppSizes.screenPaddingHorizontal/Vertical).",
+          "LiquidOverlay": "Positioned.fill wrapper for the overlay slot. Optional scrim with overlay-scrim-opacity from LiquidScaffoldThemeData.",
+          "LiquidLoading": "Centred hairline-glass loading disc with a themed CircularProgressIndicator. Uses LiquidThemes + LiquidScaffoldThemeData for every value.",
+          "LiquidOverlayConstants": "Loading disc / spinner size defaults (mirror AppButtonSizes), loading fade duration, scrim opacity default."
+        },
+        "folder_structure": {
+          "lib/core/widgets/scaffold/liquid_scaffold/": [
+            "liquid_scaffold.dart",
+            "liquid_scaffold_constants.dart",
+            "liquid_scaffold_exports.dart"
+          ],
+          "lib/core/widgets/scaffold/liquid_background/": [
+            "liquid_background.dart",
+            "liquid_background_constants.dart",
+            "liquid_light_blobs.dart",
+            "liquid_background_exports.dart"
+          ],
+          "lib/core/widgets/scaffold/liquid_body/": [
+            "liquid_body.dart",
+            "liquid_body_constants.dart",
+            "liquid_body_exports.dart"
+          ],
+          "lib/core/widgets/scaffold/liquid_overlay/": [
+            "liquid_overlay.dart",
+            "liquid_loading.dart",
+            "liquid_overlay_constants.dart",
+            "liquid_overlay_exports.dart"
+          ],
+          "lib/core/widgets/scaffold/liquid_safe_area/": [
+            "liquid_safe_area.dart",
+            "liquid_safe_area_exports.dart"
+          ],
+          "lib/core/widgets/scaffold/liquid_scaffold_theme/": [
+            "liquid_scaffold_theme.dart",
+            "liquid_scaffold_theme_data.dart",
+            "liquid_scaffold_theme_exports.dart"
+          ],
+          "lib/core/widgets/scaffold/liquid_scaffold_extensions/": [
+            "liquid_scaffold_context_extensions.dart",
+            "liquid_scaffold_extensions_exports.dart"
+          ]
+        },
+        "dependency_flow": [
+          "presentation/screens/* → core/widgets/scaffold/liquid_scaffold/liquid_scaffold_exports (single import)",
+          "liquid_scaffold_exports re-exports every sibling module so screens never import internals",
+          "core/widgets/scaffold/** → core/liquidGlass/theme, core/liquidGlass/effects, core/constants, core/animations, core/extensions, core/widgets/button, core/widgets/appbar",
+          "core/widgets/scaffold widgets never depend on features/, data/, or domain/"
+        ],
+        "consumption_pattern": "Every feature screen calls LiquidScaffold(...) instead of Scaffold(...). Minimum API surface: body (or errorState / emptyState). Optional: title / subtitle (auto-AppBar), appBar, padding, responsivePadding, scrollable, entranceAnimation, background / backgroundGradient / backgroundImage / backgroundBlur, ambient, overlay, loading, drawer / endDrawer, and all Material chrome (FAB, bottomNavigationBar, bottomSheet, persistentFooterButtons, primary, extendBody, extendBodyBehindAppBar, resizeToAvoidBottomInset). Splash uses backgroundGradient; Onboarding wraps body in LayoutBuilder + IntrinsicHeight for Spacer semantics; HomeDashboard uses appBar + padding. ambient:const AmbientBackgroundStyle(enabled: true) opts into animated blurred light blobs."
+      }
+    },
+    "shared": {
+      "purpose": "Reusable, feature-agnostic presentation utilities.",
+      "modules": {
+        "widgets": "Widgets that bridge two or more features (e.g. LoadingView).",
+        "providers": "Cross-feature Riverpod providers.",
+        "mixins": "Reusable mixins (e.g. AutoDisposeMixin).",
+        "helpers": "Stateless helper functions."
+      }
+    },
+    "features": {
+      "purpose": "Self-contained verticals. Each feature owns its full MVVM tree.",
+      "shape": {
+        "presentation": {
+          "screens": "Page-level widgets. Read-only observers of their ViewModel.",
+          "widgets": "Feature-specific reusable widgets. Should compose core/widgets/glass widgets for any visual surface.",
+          "viewmodels": "AsyncNotifier / Notifier exposing UI state and commands. Depend on UseCases only."
+        },
+        "domain": {
+          "entities": "Pure Dart models (no Flutter, no Firebase).",
+          "repositories": "Abstract contracts that the data layer implements.",
+          "usecases": "Single-responsibility classes encapsulating one business operation."
+        },
+        "data": {
+          "models": "Firestore / API DTOs and their mappers.",
+          "datasources": {
+            "remote": "Firebase, REST API clients. Return DTOs only.",
+            "local": "SharedPreferences, Hive. Not used today."
+          },
+          "services": "External SDK wrappers (GoogleSignIn).",
+          "repositories": "Implementations of the domain contracts. Map DTOs → entities."
+        }
+      }
+    }
+  },
+  "dependency_flow": [
+    "presentation/screens/widgets → presentation/viewmodels",
+    "presentation/viewmodels → domain/usecases",
+    "presentation/viewmodels → domain/repositories (only when no use case fits)",
+    "domain/usecases → domain/repositories",
+    "domain/repositories ← data/repositories (implements)",
+    "data/repositories → data/datasources/remote",
+    "data/repositories → data/datasources/local",
+    "data/datasources → data/models",
+    "data/services → external SDKs",
+    "presentation/* → core/widgets/glass (only)",
+    "core/widgets/glass/* → core/widgets/glass/glass_container (foundation)",
+    "core/widgets/glass/* → core/constants, core/theme, core/extensions"
+  ],
+  "rules": [
+    "Widgets never import Firebase, Firestore, or any data-layer symbol.",
+    "ViewModels never import Widgets or Flutter UI primitives.",
+    "UseCases never import Widgets or Flutter UI primitives.",
+    "Repositories never import Widgets or Firebase UI SDKs.",
+    "Data sources never return entities; they return DTOs.",
+    "Repositories never call datasources synchronously without error handling.",
+    "All Riverpod providers are declared in the layer they expose; cross-layer providers live in core/di/.",
+    "Glass widgets never depend on features/. They live strictly under core/widgets/glass/.",
+    "Glass widgets never hardcode design values — every constant comes from the project's design system.",
+    "Glass widgets are presentation-only: no business logic, no domain/data imports.",
+    "Screens never instantiate Material Scaffold directly; they consume CustomScaffold so background, padding, SafeArea, scroll, entrance, overlay and loading concerns are centralised.",
+    "CustomScaffold widgets never depend on features/, data/, or domain/. They live strictly under core/widgets/scaffold/custom_scaffold/.",
+    "CustomScaffold widgets never hardcode design values — every constant comes from the project's design system or its own constants file."
+  ]
+}

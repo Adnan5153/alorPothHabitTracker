@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Firestore security rules for the alor_poth application. Each user may
+// only read and write their own profile document. The bootstrap path
+// (`EnsureUserDocument`) writes to `users/{request.auth.uid}` via
+// `set(..., { merge: true })`, which requires:
+//   - the request is authenticated
+//   - the document path matches the authenticated user's UID
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{uid} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == uid;
+    }
+
+    // Default deny — no other collection is reachable until an explicit
+    // match block is added above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
